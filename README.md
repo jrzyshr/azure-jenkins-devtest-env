@@ -9,3 +9,5 @@ This project will feature some Azure ARM templates that deploy a private dev/tes
 5) Azure plugin for Jenkins to enable Jenkins to create/delete Azure Agent VMs
 6) Azure plugin for Jenkins to read/write artifacts from Azure Storage.
 7) Instructions for how to use & configure all of the pieces.
+
+#SB
