@@ -170,6 +170,7 @@ az vm create \
     --image Bitnami:jenkins:1-650:2.46.20 \
     --size Standard_DS2_v2 \
     --storage-sku Standard_LRS \
+    --authentication-type password \
     --admin-username $jenkinsAdminName \
     --admin-password $jenkinsAdminPassword \
     -o table
