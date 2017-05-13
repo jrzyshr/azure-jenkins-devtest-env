@@ -139,6 +139,21 @@ echo "creating Jenkins NSG..."
 az network nsg create --resource-group $resourceGroupName --name $jenkinsNSGName -o table
 echo "created Jenkins NSG"
 
+# TODO - Open SSH on the NSG!!!
+az network nsg rule create \
+  -g $resourceGroupName \
+  --nsg-name $jenkinsNSGName \
+  -n allowSSH \
+  --priority 100 \
+  --source-address-prefix * \
+  --source-port-range * \
+  --destination-address-prefix * \
+  --destination-port-range 22 \
+  --access Allow \
+  --protocol Tcp \
+  --direction Inbound \
+  --description "Allow SSH on port 22 from all inbound IPs."
+
 # Create a virtual network card and associate with public IP address and NSG.
 echo "creating Jenkins NIC..."
 az network nic create \
