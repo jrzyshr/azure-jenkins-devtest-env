@@ -9,14 +9,23 @@ location="eastus2"
 vNetName="jenkinsDevTest-VirtualNetwork"
 jumpSubName="jumpbox-Subnet"
 jenkinsSubName="jenkins-Subnet"
+
+#Jumpbox Resources
 jumpPubIPName="jumpbox-PIP"
 jumpNSGName="jumpbox-NSG"
 jumpNICName="jumpbox-NIC"
-
 jumpboxVMName="win-jumpbox"
 jumpboxAdminName="jumpboxadmin"
 jumpboxAdminPassword="DevTestPa55W0rd!"
 jumpboxDiagStorageAccount="jumpboxdiag1234" # needs to be a random number????
+
+#Jenkins Master Resources
+jenkinsNSGName="jenkins-NSG"
+jenkinsNICName="jenkins-NIC"
+jenkinsVMName="jenkins-master"
+jenkinsAdminName="jenkinsadmin"
+jenkinsAdminPassword="DevTestPa55W0rd!"
+jenkinsDiagStorageAccount="jenkinsdiag1234" # needs to be a random number????
 
 echo $resourceGroupName
 echo $location
@@ -90,6 +99,7 @@ az storage account create -n $jumpboxDiagStorageAccount -g $resourceGroupName -l
 echo "created jumpbox diag storage account"
 
 # Create Windows Jumpbox VM
+# TODO: add a check if VM exists and don't create if it does?'
 echo "creating jumpbox VM..."
 az vm create \
     --resource-group $resourceGroupName \
@@ -111,9 +121,10 @@ az vm boot-diagnostics enable --storage $jumpboxDiagStorageAccount -n $jumpboxVM
 echo "boot diagnostics enabled for $jumpboxVMName"
 
 # Open port 3389 to allow RDP traffic to host.
-echo "opening jumpbox port for RDP..."
-az vm open-port --port 3389 --resource-group $resourceGroupName --name $jumpboxVMName -o table
-echo "jumpbox rdp port opened"
+# This appears to be opened by default on Windows VM???
+#echo "opening jumpbox port for RDP..."
+#az vm open-port --port 3389 --resource-group $resourceGroupName --name $jumpboxVMName -o table
+#cho "jumpbox rdp port opened"
 
 # TODO: Run some DSC stuff to configure the Jumpbox by...
 #  -installing Putty
@@ -123,11 +134,54 @@ echo "jumpbox rdp port opened"
 
 # Deploy Jenkins Master
 
+# Create a network security group.
+echo "creating Jenkins NSG..."
+az network nsg create --resource-group $resourceGroupName --name $jenkinsNSGName -o table
+echo "created Jenkins NSG"
 
+# Create a virtual network card and associate with public IP address and NSG.
+echo "creating Jenkins NIC..."
+az network nic create \
+  --resource-group $resourceGroupName \
+  --name $jenkinsNICName \
+  --vnet-name $vNetName \
+  --subnet $jenkinsSubName \
+  --network-security-group $jenkinsNSGName \
+  --public-ip-address "" \
+  -o table
+echo "created Jenkins NIC"
+
+# Create storage account for the Jumpbox VM
+echo "create Jenkins diag storage account"
+
+# if check?
+az storage account check-name --name $jenkinsDiagStorageAccount -o table
+az storage account create -n $jenkinsDiagStorageAccount -g $resourceGroupName -l $location --sku Standard_LRS -o table
+echo "created Jenkins diag storage account"
+
+# Create Linux Jenkins Master VM
+# TODO: add a check if VM exists and don't create if it does?'
+echo "creating Jenkins master VM..."
+az vm create \
+    --resource-group $resourceGroupName \
+    --name $jenkinsVMName \
+    --location $location \
+    --nics $jenkinsNICName \
+    --image Bitnami:jenkins:1-650:2.46.20 \
+    --size Standard_DS2_v2 \
+    --storage-sku Standard_LRS \
+    --admin-username $jenkinsAdminName \
+    --admin-password $jenkinsAdminPassword \
+    -o table
+
+echo "created Jenkins VM"
+
+# enable boot diagnostics
+echo "enabling boot diagnostics for $jenkinsVMName..."
+az vm boot-diagnostics enable --storage $jenkinsDiagStorageAccount -n $jenkinsVMName -g $resourceGroupName -o table
+echo "boot diagnostics enabled for $jenkinsVMName"
+
+# Execute DSC on Jenkins Master??
 
 # Create & Apply NSGs to Subnets
 
-# Execute DSC on Windows Jumpbox??
-
-# Deploy Template
-#az group deployment create --name ExampleDeployment --resource-group ExampleGroup --template-file c:\MyTemplates\azuredeploy.json
