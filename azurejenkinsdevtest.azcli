@@ -4,7 +4,7 @@
 # az account set --subscription {subscription-id}
 
 # Variables
-resourceGroupName="dtARMTest3"
+resourceGroupName="dtARMTest2"
 location="eastus2"
 vNetName="jenkinsDevTest-VirtualNetwork"
 jumpSubName="jumpbox-Subnet"
@@ -12,6 +12,11 @@ jenkinsSubName="jenkins-Subnet"
 jumpPubIPName="jumpbox-PIP"
 jumpNSGName="jumpbox-NSG"
 jumpNICName="jumpbox-NIC"
+
+jumpboxVMName="win-jumpbox"
+jumpboxAdminName="jumpboxadmin"
+jumpboxAdminPassword="DevTestPa55W0rd!"
+jumpboxDiagStorageAccount="jumpboxdiag1234" # needs to be a random number????
 
 echo $resourceGroupName
 echo $location
@@ -25,11 +30,12 @@ if [[ $resourcegroup == {* ]]
 then
   echo "Resource group already exists"
 else
-    echo "Create resource group"
-    az group create -n $resourceGroupName -l $location
+    echo "Creating resource group $resourceGroupName..."
+    az group create -n $resourceGroupName -l $location -o table
+    echo "Created resource group"
 fi
 
-    echo "Create VNet"
+    echo "Creating VNet $vNetName ..."
     # Deploy VNet & initial Subnet
     az network vnet create \
     --name $vNetName \
@@ -37,40 +43,87 @@ fi
     --location $location \
     --address-prefix 10.0.0.0/16 \
     --subnet-name $jumpSubName \
-    --subnet-prefix 10.0.1.0/24
+    --subnet-prefix 10.0.1.0/24 \
+    -o table
     echo "created the vnet!"
     
-    echo "Deploy Jumpbox Subnet"
+    echo "Creating jumpbox subnet..."
     # Deploy additional Subnet
     az network vnet subnet create \
     --address-prefix 10.0.2.0/24 \
     --name $jenkinsSubName \
     --resource-group $resourceGroupName \
-    --vnet-name $vNetName
-echo "jump subnet created"
+    --vnet-name $vNetName \
+    -o table
+echo "jumpox subnet created"
 
 # Deploy Windows JumpBox
 
 # Create a public IP address.
-echo "create jumpbox PIP"
-az network public-ip create --resource-group $resourceGroupName --name $jumpPubIPName
+echo "creating jumpbox PIP..."
+az network public-ip create --resource-group $resourceGroupName --name $jumpPubIPName -o table
 echo "created jumpbox PIP"
 
 # Create a network security group.
-az network nsg create --resource-group $resourceGroupName --name $jumpNSGName
+echo "creating jumpbox NSG..."
+az network nsg create --resource-group $resourceGroupName --name $jumpNSGName -o table
 echo "created Jumpbox NSG"
 
 # Create a virtual network card and associate with public IP address and NSG.
+echo "creating jumpbox NIC..."
 az network nic create \
   --resource-group $resourceGroupName \
   --name $jumpNICName \
   --vnet-name $vNetName \
   --subnet $jumpSubName \
   --network-security-group $jumpNSGName \
-  --public-ip-address $jumpPubIPName
+  --public-ip-address $jumpPubIPName \
+  -o table
 echo "created Jumpbox NIC"
 
+# Create storage account for the Jumpbox VM
+echo "create jumpbox diag storage account"
+
+# if check?
+az storage account check-name --name $jumpboxDiagStorageAccount -o table
+az storage account create -n $jumpboxDiagStorageAccount -g $resourceGroupName -l $location --sku Standard_LRS -o table
+echo "created jumpbox diag storage account"
+
+# Create Windows Jumpbox VM
+echo "creating jumpbox VM..."
+az vm create \
+    --resource-group $resourceGroupName \
+    --name $jumpboxVMName \
+    --location $location \
+    --nics $jumpNICName \
+    --image win2016datacenter \
+    --size Standard_DS1_v2 \
+    --storage-sku Standard_LRS \
+    --admin-username $jumpboxAdminName \
+    --admin-password $jumpboxAdminPassword \
+    -o table
+
+echo "created jumpbox VM"
+
+# enable boot diagnostics
+echo "enabling boot diagnostics for $jumpboxVMName..."
+az vm boot-diagnostics enable --storage $jumpboxDiagStorageAccount -n $jumpboxVMName -g $resourceGroupName -o table
+echo "boot diagnostics enabled for $jumpboxVMName"
+
+# Open port 3389 to allow RDP traffic to host.
+echo "opening jumpbox port for RDP..."
+az vm open-port --port 3389 --resource-group $resourceGroupName --name $jumpboxVMName -o table
+echo "jumpbox rdp port opened"
+
+# TODO: Run some DSC stuff to configure the Jumpbox by...
+#  -installing Putty
+#  -installing AzureCLI
+#  -installing Azure PowerShell-Cmdlets
+#  -disabling IE Enhanced Protection mode?
+
 # Deploy Jenkins Master
+
+
 
 # Create & Apply NSGs to Subnets
 
