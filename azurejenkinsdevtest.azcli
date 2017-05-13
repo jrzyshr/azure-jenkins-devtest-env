@@ -78,6 +78,23 @@ echo "creating jumpbox NSG..."
 az network nsg create --resource-group $resourceGroupName --name $jumpNSGName -o table
 echo "created Jumpbox NSG"
 
+# Open RDP on the Jumpbox NSG!!!
+# echo "creating jumpbox NSG rule to allow rdp..."
+# az network nsg rule create \
+#   -g $resourceGroupName \
+#   --nsg-name $jumpNSGName \
+#   -n allowSSH \
+#   --priority 100 \
+#   --source-address-prefix * \
+#   --source-port-range * \
+#   --destination-address-prefix * \
+#   --destination-port-range 3389 \
+#   --access Allow \
+#   --protocol Tcp \
+#   --direction Inbound \
+#   --description "Allow RDP on port 3389 from all inbound IPs."
+# echo "created jumpbox NSG rule to allow rdp"
+
 # Create a virtual network card and associate with public IP address and NSG.
 echo "creating jumpbox NIC..."
 az network nic create \
@@ -122,9 +139,9 @@ echo "boot diagnostics enabled for $jumpboxVMName"
 
 # Open port 3389 to allow RDP traffic to host.
 # This appears to be opened by default on Windows VM???
-#echo "opening jumpbox port for RDP..."
-#az vm open-port --port 3389 --resource-group $resourceGroupName --name $jumpboxVMName -o table
-#cho "jumpbox rdp port opened"
+echo "opening jumpbox port for RDP..."
+az vm open-port --port 3389 --resource-group $resourceGroupName --name $jumpboxVMName -o table
+echo "jumpbox rdp port opened"
 
 # TODO: Run some DSC stuff to configure the Jumpbox by...
 #  -installing Putty
@@ -140,21 +157,23 @@ az network nsg create --resource-group $resourceGroupName --name $jenkinsNSGName
 echo "created Jenkins NSG"
 
 # Open SSH on the NSG!!!
-echo "creating Jenkins NSG rule to allow ssh..."
-az network nsg rule create \
-  -g $resourceGroupName \
-  --nsg-name $jenkinsNSGName \
-  -n allowSSH \
-  --priority 100 \
-  --source-address-prefix * \
-  --source-port-range * \
-  --destination-address-prefix * \
-  --destination-port-range 22 \
-  --access Allow \
-  --protocol Tcp \
-  --direction Inbound \
-  --description "Allow SSH on port 22 from all inbound IPs."
-echo "created Jenkins NSG rule to allow ssh"
+# echo "creating Jenkins NSG rule to allow ssh..."
+# az network nsg rule create \
+#   -g $resourceGroupName \
+#   --nsg-name $jenkinsNSGName \
+#   -n allowSSH \
+#   --priority 100 \
+#   --source-address-prefix * \
+#   --source-port-range * \
+#   --destination-address-prefix * \
+#   --destination-port-range 22 \
+#   --access Allow \
+#   --protocol Tcp \
+#   --direction Inbound \
+#   --description "Allow SSH on port 22 from all inbound IPs."
+# echo "created Jenkins NSG rule to allow ssh"
+
+
 
 # Create a virtual network card and associate with public IP address and NSG.
 echo "creating Jenkins NIC..."
@@ -198,6 +217,12 @@ echo "created Jenkins VM"
 echo "enabling boot diagnostics for $jenkinsVMName..."
 az vm boot-diagnostics enable --storage $jenkinsDiagStorageAccount -n $jenkinsVMName -g $resourceGroupName -o table
 echo "boot diagnostics enabled for $jenkinsVMName"
+
+# OR TRY THIS
+echo "opening port 22 on $jenkinsVMName..."
+az vm open-port --port 22 --resource-group $resourceGroupName --name $jenkinsVMName -o table
+echo "opened port 22 on $jenkinsVMName"
+
 
 # Execute DSC on Jenkins Master??
 
