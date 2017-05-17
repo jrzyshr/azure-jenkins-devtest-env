@@ -10,4 +10,6 @@ This project will feature some Azure ARM templates that deploy a private dev/tes
 6) Azure plugin for Jenkins to read/write artifacts from Azure Storage.
 7) Instructions for how to use & configure all of the pieces.
 
+Please see the file named Azure-Jenkins-DevTest-Environment.docx file for instructions on how to set up an Azure Jenkins dev test environment.
+
 #SB

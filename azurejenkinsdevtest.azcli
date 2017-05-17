@@ -223,8 +223,7 @@ echo "opening port 22 on $jenkinsVMName..."
 az vm open-port --port 22 --resource-group $resourceGroupName --name $jenkinsVMName -o table
 echo "opened port 22 on $jenkinsVMName"
 
-
+#TODO:
 # Execute DSC on Jenkins Master??
-
 # Create & Apply NSGs to Subnets
 
